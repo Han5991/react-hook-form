@@ -579,6 +579,7 @@ describe('watch', () => {
         firstName: string;
       }[];
     }
+
     const mockedFn = jest.fn();
 
     function App() {
@@ -658,5 +659,59 @@ describe('watch', () => {
 
     screen.getByText('formStateReady');
     screen.getByText('useFormStateReady');
+  });
+  it('should watch both object and its nested field', () => {
+    const objectOutput: unknown[] = [];
+    const fieldOutput: unknown[] = [];
+
+    const Component = () => {
+      const { control, watch } = useForm({
+        defaultValues: {
+          test: {
+            one: '',
+          },
+        },
+      });
+
+      const watchedObject = watch('test');
+      const watchedField = watch('test.one');
+
+      useEffect(() => {
+        objectOutput.push(watchedObject);
+      }, [watchedObject]);
+
+      useEffect(() => {
+        fieldOutput.push(watchedField);
+      }, [watchedField]);
+
+      return (
+        <form>
+          <Controller
+            control={control}
+            name="test.one"
+            render={({ field }) => <input {...field} />}
+          />
+        </form>
+      );
+    };
+
+    render(<Component />);
+
+    expect(objectOutput[0]).toEqual({ one: '' });
+    expect(fieldOutput[0]).toBe('');
+
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'test' },
+    });
+
+    expect(objectOutput[1]).toEqual({ one: 'test' });
+    expect(fieldOutput[1]).toBe('test');
+
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: { value: 'test2' },
+    });
+
+    expect(fieldOutput[2]).toBe('test2');
+    expect(objectOutput[2]).toEqual({ one: 'test2' });
   });
 });
